@@ -18,7 +18,12 @@ class QuizResultFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'status' => 'in_progress',
+            'total_questions' => '2',
+            'correct_count' => '0',
+            'wrong_count' => '0',
+            'score' => '0',
+            'xp_earned' => '0',
         ];
     }
 }
