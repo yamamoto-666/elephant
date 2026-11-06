@@ -33,7 +33,7 @@ class QuestionController extends Controller
             ],
         ]);
 
-        $answer =$question->answers()
+        $answer = $question->answers()
             ->whereKey($validated['answer_id'])
             ->firstOrFail();
 
