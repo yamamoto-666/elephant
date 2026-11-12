@@ -28,7 +28,6 @@ class QuizResultController extends Controller
 
         $quizResult->user()->associate($request->user());
         $quizResult->lesson()->associate($lesson);
-
         $quizResult->save();
 
         return response()->json([
