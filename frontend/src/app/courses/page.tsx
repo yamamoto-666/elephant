@@ -4,7 +4,7 @@ import { courses } from '@/data/courses';
 import { useState } from 'react';
 import type { CourseLevel } from '@/types/course';
 import CourseCard from '@/components/CourseCard';
-import Sidebar from '@/components/Sidebar';
+import SidebarLayout from '@/components/SidebarLayout';
 
 
 const levels: (CourseLevel | 'All')[] = [
@@ -29,9 +29,8 @@ export default function CoursePage() {
   });
 
   return (
-    <div className='flex min-h-screen flex-col md:flex-row'>
-      <Sidebar />
-      <main className='min-w-0 flex-1 bg-white px-6 py-10 text-black'>
+    <SidebarLayout className='bg-white px-6 py-10 text-black'>
+
         <h1 className='text-3xl font-bold'>Courses</h1>
         <p className='mt-4 text-gray-500'>Choose a course to start learning English.</p>
 
@@ -85,8 +84,6 @@ export default function CoursePage() {
               ))}
             </div>
           )}
-
-      </main>
-    </div>
+    </SidebarLayout>
   );
 }

@@ -18,6 +18,7 @@ class UnitResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'order_number' => $this->order_number,
+            'lessons' => LessonResource::collection($this->whenLoaded('lessons')),
         ];
     }
 }

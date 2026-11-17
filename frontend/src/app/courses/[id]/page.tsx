@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
+import SidebarLayout from '@/components/SidebarLayout';
 import CourseTabs from '@/components/CourseTabs';
 import { courses } from '@/data/courses';
 
@@ -20,10 +20,7 @@ export default function CourseDetailPage() {
   const progress = 30;
 
   return (
-    <div className='flex min-h-screen flex-col md:flex-row'>
-      <Sidebar />
-
-      <main className='min-w-0 flex-1 bg-white px-6 py-10 text-gray-900'>
+      <SidebarLayout className='bg-white px-6 py-10 text-gray-900'>
         <Link
           href='/courses'
           className='text-purple-600 hover:underline'
@@ -81,14 +78,16 @@ export default function CourseDetailPage() {
               </div>
             </section>
 
-            <CourseTabs description={course.description} />
+            <CourseTabs
+              key={course.id}
+              description={course.description}
+            />
           </>
         ) : (
           <p className='mt-8 text-gray-600'>
             Course not found.
           </p>
         )}
-      </main>
-    </div>
+      </SidebarLayout>
   );
 }

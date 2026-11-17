@@ -11,7 +11,11 @@ class UnitController extends Controller
 {
     public function index(Course $course): AnonymousResourceCollection
     {
-        $units = $course->units;
+        $units = $course->units()
+            ->with(['lessons' => fn ($query) => $query->orderBy('order_number')->orderBy('id')])
+            ->orderBy('order_number')
+            ->orderBy('id')
+            ->get();
 
         return UnitResource::collection($units);
     }

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Header() {
@@ -5,7 +6,13 @@ export default function Header() {
     <header className='bg-[#6645F5] text-white'>
       <div className='mx-auto flex h-16 max-w-6xl items-center justify-between px-6'>
         <a href='#' className='flex items-center gap-2'>
-          <span className='text-3xl'>🐘</span>
+          <Image
+            src='/images/logo-no-title.png'
+            alt=''
+            width={44}
+            height={44}
+            className='shrink-0 rounded-3xl'
+          />
           <span className='font-semibold'>Elephant English</span>
         </a>
 

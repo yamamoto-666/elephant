@@ -29,7 +29,18 @@ export default function LessonItems({ lesson, number }: LessonItemsProps) {
           Start →
         </Link>
       ) : lesson.status === 'completed' ? (
-        <span className='text-sm font-semibold text-green-700'>✅Completed</span>
+       <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-semibold text-green-700">
+          ✅ Completed
+        </span>
+
+        <Link
+          href={`/lessons/${lesson.id}/quiz`}
+          className='rounded-full border border-violet-300 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 focus-visible:ring-2 focus-visible:ring-violet-500'
+        >
+          Practice again →
+        </Link>
+       </div>
       ) : (
         <span className='text-sm font-semibold text-gray-500'>🔒Locked</span>
       )}
