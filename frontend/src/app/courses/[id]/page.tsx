@@ -1,6 +1,6 @@
-
 'use client';
 
+import { Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -8,23 +8,18 @@ import SidebarLayout from '@/components/SidebarLayout';
 import CourseTabs from '@/components/CourseTabs';
 import { courses } from '@/data/courses';
 
-export default function CourseDetailPage() {
+function CourseDetailContent() {
   const { id } = useParams<{ id: string }>();
 
   // URLのIDに一致するコースを探す
-  const course = courses.find(
-    (course) => course.id === Number(id)
-  );
+  const course = courses.find((course) => course.id === Number(id));
 
   // デザイン確認用の仮の進捗率
   const progress = 30;
 
   return (
-      <SidebarLayout className='bg-white px-6 py-10 text-gray-900'>
-        <Link
-          href='/courses'
-          className='text-purple-600 hover:underline'
-        >
+    <>
+        <Link href='/courses' className='text-purple-600 hover:underline'>
           ← Back to Courses
         </Link>
 
@@ -42,20 +37,15 @@ export default function CourseDetailPage() {
                       className='object-cover'
                     />
                   ) : (
-                    <div className='flex h-full items-center justify-center'>
-                      📚
-                    </div>
+                    <div className='flex h-full items-center justify-center'>📚</div>
                   )}
                 </div>
 
                 <div className='min-w-0 flex-1'>
-                  <h1 className='text-3xl font-bold'>
-                    {course.title}
-                  </h1>
+                  <h1 className='text-3xl font-bold'>{course.title}</h1>
 
                   <p className='mt-2 text-gray-700'>
-                    {course.description ??
-                      'Start learning English with this course.'}
+                    {course.description ?? 'Start learning English with this course.'}
                   </p>
 
                   <p className='mt-2 text-gray-700'>
@@ -70,24 +60,33 @@ export default function CourseDetailPage() {
                       />
                     </div>
 
-                    <span className='font-semibold'>
-                      {progress}%
-                    </span>
+                    <span className='font-semibold'>{progress}%</span>
                   </div>
                 </div>
               </div>
             </section>
 
-            <CourseTabs
-              key={course.id}
-              description={course.description}
-            />
+            <CourseTabs key={course.id} courseId={course.id} description={course.description} />
           </>
         ) : (
-          <p className='mt-8 text-gray-600'>
-            Course not found.
-          </p>
+          <p className='mt-8 text-gray-600'>Course not found.</p>
         )}
-      </SidebarLayout>
+    </>
+  );
+}
+
+export default function CourseDetailPage() {
+  return (
+    <SidebarLayout className='bg-white px-6 py-10 text-gray-900'>
+      <Suspense
+        fallback={
+          <p role='status' className='text-sm text-gray-500'>
+            コースを読み込んでいます…
+          </p>
+        }
+      >
+        <CourseDetailContent />
+      </Suspense>
+    </SidebarLayout>
   );
 }
