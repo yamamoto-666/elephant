@@ -10,7 +10,7 @@ export default function Hero() {
         aria-label='Start Learning'
       >
         <Image
-          src='/images/image.png'
+          src='/images/hero-image.png'
           alt='Elephant Hero'
           fill
           sizes='100vw'

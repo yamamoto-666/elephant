@@ -109,32 +109,66 @@ function LessonQuizContent({ id }: { id: string }) {
   if (!apiQuestion) {
     return <p className='p-6'>このレッスンにはまだ問題がありません。</p>;
   }
+
   async function checkAnswer() {
-    if (selectedAnswerId === null || isChecking || isSubmitted) return;
+    if (selectedAnswerId === null || isChecking || isSubmitted) {
+      return;
+    }
 
     setIsChecking(true);
     setAnswerError('');
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/questions/${apiQuestion.id}/answer`, {
+      // CSRF用のCookieを取得する
+      const csrfResponse = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+        headers: {
+          Accept: 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!csrfResponse.ok) {
+        throw new Error(`CSRFトークンを取得できませんでした（HTTP ${csrfResponse.status}）`);
+      }
+
+      // CookieからCSRFトークンを取り出す
+      const tokenCookie = document.cookie
+        .split('; ')
+        .find((cookie) => cookie.startsWith('XSRF-TOKEN='));
+
+      if (!tokenCookie) {
+        throw new Error('CSRFトークンのCookieが見つかりません');
+      }
+
+      const csrfToken = decodeURIComponent(tokenCookie.slice('XSRF-TOKEN='.length));
+
+      // 回答を送信する
+      const response = await fetch(`http://localhost:8000/api/questions/${apiQuestion.id}/answer`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'X-XSRF-TOKEN': csrfToken,
         },
-        body: JSON.stringify({ answer_id: selectedAnswerId }),
+        body: JSON.stringify({
+          answer_id: selectedAnswerId,
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
+      // Laravelから採点結果を受け取る
       const result: { is_correct: boolean } = await response.json();
 
       setIsCorrect(result.is_correct);
+
       if (result.is_correct) {
         setCorrectCount((count) => count + 1);
       }
+
       setIsSubmitted(true);
     } catch (error) {
       console.error('回答の送信に失敗しました', error);

@@ -19,6 +19,7 @@ class CourseResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'difficulty' => $this->difficulty,
+            'lessons_count' => $this->whenCounted('lessons'),
         ];
     }
 }
