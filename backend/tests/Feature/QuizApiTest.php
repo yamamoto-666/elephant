@@ -2,20 +2,164 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-
-use App\Models\User;
+use App\Models\Answer;
 use App\Models\Course;
-use App\Models\Unit;
 use App\Models\Lesson;
 use App\Models\Question;
-use App\Models\Answer;
 use App\Models\QuizResult;
+use App\Models\Unit;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class QuizApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_questions_do_not_expose_correct_answers(): void
+    {
+        $lesson = $this->createLesson();
+
+        $question = Question::create([
+            'lesson_id' => $lesson->id,
+            'question_text' => 'What does Hello mean?',
+            'question_type' => 'multiple_choice',
+            'explanation' => 'Helloは「こんにちは」と言う意味です。',
+            'order_number' => 1,
+        ]);
+
+        $answer = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'こんにちは',
+            'is_correct' => true,
+        ]);
+
+        $response = $this->getJson(
+            "/api/lessons/{$lesson->id}/questions"
+        );
+
+        $response->assertOk();
+
+        $response->assertExactJson([
+            'data' => [
+                [
+                    'id' => $question->id,
+                    'question_text' => 'What does Hello mean?',
+                    'question_type' => 'multiple_choice',
+                    'question_number' => 1,
+                    'answers' => [
+                        [
+                            'id' => $answer->id,
+                            'answer_text' => 'こんにちは',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    public function test_single_answer_returns_only_expected_fields(): void
+    {
+        $lesson = $this->createLesson();
+
+        $question = Question::create([
+            'lesson_id' => $lesson->id,
+            'question_text' => 'What does Hello mean?',
+            'question_type' => 'multiple_choice',
+            'order_number' => 1,
+        ]);
+
+        $answer = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'こんにちは',
+            'is_correct' => true,
+        ]);
+
+        $response = $this->postJson(
+            "api/questions/{$question->id}/answer",
+            [
+                'answer_id' => $answer->id,
+            ]
+        );
+
+        $response->assertOk();
+
+        $response->assertExactJson([
+            'question_id' => $question->id,
+            'answer_id' => $answer->id,
+            'is_correct' => true,
+            'message' => 'Answer received successfully',
+        ]);
+    }
+
+    public function test_single_wrong_answer_returns_false(): void
+    {
+        $lesson = $this->createLesson();
+
+        $question = Question::create([
+            'lesson_id' => $lesson->id,
+            'question_text' => 'What does Hello mean?',
+            'question_type' => 'multiple_choice',
+            'order_number' => 1,
+        ]);
+
+        $answer = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'さようなら',
+            'is_correct' => false,
+        ]);
+
+        $response = $this->postJson(
+            "/api/questions/{$question->id}/answer",
+            [
+                'answer_id' => $answer->id,
+            ]
+        );
+
+        $response->assertOk();
+
+        $response->assertExactJson([
+            'question_id' => $question->id,
+            'answer_id' => $answer->id,
+            'is_correct' => false,
+            'message' => 'Answer received successfully',
+        ]);
+    }
+
+    public function test_single_answer_rejects_answer_from_another_question(): void
+    {
+        $lesson = $this->createLesson();
+
+        $question1 = Question::create([
+            'lesson_id' => $lesson->id,
+            'question_text' => 'What does Hello mean?',
+            'question_type' => 'multiple_choice',
+            'order_number' => 1,
+        ]);
+
+        $question2 = Question::create([
+            'lesson_id' => $lesson->id,
+            'question_text' => 'What does Thank you mean?',
+            'question_type' => 'multiple_choice',
+            'order_number' => 2,
+        ]);
+
+        $answerForQuestion2 = Answer::create([
+            'question_id' => $question2->id,
+            'answer_text' => 'ありがとう',
+            'is_correct' => true,
+        ]);
+
+        $response = $this->postJson(
+            "/api/questions/{$question1->id}/answer",
+            [
+                'answer_id' => $answerForQuestion2->id,
+            ]
+        );
+
+        $response->assertNotFound();
+        $response->assertJsonMissingPath('is_correct');
+    }
 
     // ==========================================
     // 1. 未ログインユーザーはクイズを開始できない
@@ -112,13 +256,13 @@ class QuizApiTest extends TestCase
             'order_number' => 1,
         ]);
 
-        $answer = new Answer();
+        $answer = new Answer;
         $answer->question_id = $question->id;
         $answer->answer_text = 'こんにちは';
         $answer->is_correct = true;
         $answer->save();
 
-        $quizResult = new QuizResult();
+        $quizResult = new QuizResult;
         $quizResult->user_id = $user->id;
         $quizResult->lesson_id = $lesson->id;
         $quizResult->status = 'in_progress';
@@ -145,6 +289,7 @@ class QuizApiTest extends TestCase
             'is_correct' => true,
         ]);
     }
+
     // ==========================================
     // 6. 未ログインユーザーはクイズを終了できない
     // ==========================================
@@ -170,7 +315,7 @@ class QuizApiTest extends TestCase
         $lesson = $this->createLesson();
 
         // 所有者のクイズを作成
-        $quizResult = new QuizResult();
+        $quizResult = new QuizResult;
         $quizResult->user_id = $owner->id;
         $quizResult->lesson_id = $lesson->id;
         $quizResult->status = 'in_progress';
@@ -231,14 +376,14 @@ class QuizApiTest extends TestCase
         ]);
 
         // 正解の選択肢を作成
-        $answer = new Answer();
+        $answer = new Answer;
         $answer->question_id = $question->id;
         $answer->answer_text = 'こんにちは';
         $answer->is_correct = true;
         $answer->save();
 
         // 進行中のクイズを作成
-        $quizResult = new QuizResult();
+        $quizResult = new QuizResult;
         $quizResult->user_id = $user->id;
         $quizResult->lesson_id = $lesson->id;
         $quizResult->status = 'in_progress';
@@ -269,11 +414,11 @@ class QuizApiTest extends TestCase
 
     public function test_finishing_quiz_calculates_score_and_awards_xp(): void
     {
-        //ユーザーとレッスンを作成
+        // ユーザーとレッスンを作成
         $user = User::factory()->create(['xp' => 0]);
         $lesson = $this->createLesson();
 
-        //問題を作成
+        // 問題を作成
         $question = Question::create([
             'lesson_id' => $lesson->id,
             'question_text' => 'Whata does Hello mean?',
@@ -281,21 +426,20 @@ class QuizApiTest extends TestCase
             'order_number' => 1,
         ]);
 
-        //正解の選択肢作成
-        $answer = new Answer();
+        // 正解の選択肢作成
+        $answer = new Answer;
         $answer->question_id = $question->id;
         $answer->answer_text = 'こんにちは';
         $answer->is_correct = true;
         $answer->save();
 
-        //クイズ開始
+        // クイズ開始
         $startResponse = $this->actingAs($user, 'sanctum')
             ->postJson("/api/lessons/{$lesson->id}/quiz/start");
 
         $quizResultId = $startResponse->json('quiz_result_id');
 
-
-        //問題に回答
+        // 問題に回答
         $answerResponse = $this->postJson(
             "/api/quiz-results/{$quizResultId}/answers",
             [
@@ -306,18 +450,18 @@ class QuizApiTest extends TestCase
 
         $answerResponse->assertStatus(201);
 
-        //クイズを終了
+        // クイズを終了
         $finishResponse = $this->postJson(
             "/api/quiz-results/{$quizResultId}/finish"
         );
 
-        //APIレスポンスを検証
+        // APIレスポンスを検証
         $finishResponse->assertStatus(200);
         $finishResponse->assertJsonPath('quiz_result.score', 100);
         $finishResponse->assertJsonPath('quiz_result.xp_earned', 10);
         $finishResponse->assertJsonPath('quiz_result.status', 'completed');
 
-        //DBのクイズ結果を検証
+        // DBのクイズ結果を検証
         $this->assertDatabaseHas('quiz_results', [
             'id' => $quizResultId,
             'correct_count' => 1,
@@ -327,7 +471,7 @@ class QuizApiTest extends TestCase
             'status' => 'completed',
         ]);
 
-        //ユーザーの累計XPを検証
+        // ユーザーの累計XPを検証
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'xp' => 10,
@@ -336,35 +480,35 @@ class QuizApiTest extends TestCase
 
     public function test_cannot_finish_another_users_quiz(): void
     {
-        //二人のユーザーを作成
+        // 二人のユーザーを作成
         $owner = User::factory()->create(['xp' => 0]);
         $otherUser = User::factory()->create(['xp' => 0]);
 
-        //レッスンを作成
+        // レッスンを作成
         $lesson = $this->createLesson();
 
-        //ユーザーAの進行中のクイズを作成
-        $quizResult = new QuizResult();
+        // ユーザーAの進行中のクイズを作成
+        $quizResult = new QuizResult;
         $quizResult->user_id = $owner->id;
         $quizResult->lesson_id = $lesson->id;
         $quizResult->status = 'in_progress';
         $quizResult->total_questions = 1;
         $quizResult->save();
 
-        //ユーザーBがクイズを終了しようとすると
+        // ユーザーBがクイズを終了しようとすると
         $response = $this->actingAs($otherUser, 'sanctum')
             ->postJson("/api/quiz-results/{$quizResult->id}/finish");
 
-        //操作権限がないので拒否
+        // 操作権限がないので拒否
         $response->assertStatus(403);
 
-        //クイズが進行中のままであることを確認
+        // クイズが進行中のままであることを確認
         $this->assertDatabaseHas('quiz_results', [
             'id' => $quizResult->id,
             'status' => 'in_progress',
         ]);
 
-        //所有者のXPが変更されていないことを確認
+        // 所有者のXPが変更されていないことを確認
         $this->assertDatabaseHas('users', [
             'id' => $owner->id,
             'xp' => 0,
@@ -373,16 +517,16 @@ class QuizApiTest extends TestCase
 
     public function test_cannot_finish_completed_quiz_twice(): void
     {
-        //10XPを持つユーザーを作成
+        // 10XPを持つユーザーを作成
         $user = User::factory()->create([
             'xp' => 10,
         ]);
 
-        //テスト用レッスンを作成
+        // テスト用レッスンを作成
         $lesson = $this->createLesson();
 
-        //テスト済みレッスンを作成
-        $quizResult = new QuizResult();
+        // テスト済みレッスンを作成
+        $quizResult = new QuizResult;
 
         $quizResult->user_id = $user->id;
         $quizResult->lesson_id = $lesson->id;
@@ -391,20 +535,20 @@ class QuizApiTest extends TestCase
 
         $quizResult->save();
 
-        //完了済みのクイズ終了APIを実行
+        // 完了済みのクイズ終了APIを実行
         $response = $this->actingAs($user, 'sanctum')
             ->postJson("/api/quiz-results/{$quizResult->id}/finish");
 
-        //HTTP 422を検証
+        // HTTP 422を検証
         $response->assertStatus(422);
 
-        //クイズの状態が変わっていないことを検証
+        // クイズの状態が変わっていないことを検証
         $this->assertDatabaseHas('quiz_results', [
             'id' => $quizResult->id,
             'status' => 'completed',
         ]);
 
-        //ユーザーのXPが増えて意なことを検証
+        // ユーザーのXPが増えて意なことを検証
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'xp' => 10,
@@ -427,14 +571,14 @@ class QuizApiTest extends TestCase
         ]);
 
         // ③ 正解の選択肢を作成
-        $answer = new Answer();
+        $answer = new Answer;
         $answer->question_id = $question->id;
         $answer->answer_text = 'こんにちは';
         $answer->is_correct = true;
         $answer->save();
 
         // ④ 過去にXPを獲得したクイズ結果を準備
-        $previousQuiz = new QuizResult();
+        $previousQuiz = new QuizResult;
         $previousQuiz->user_id = $user->id;
         $previousQuiz->lesson_id = $lesson->id;
         $previousQuiz->status = 'completed';
@@ -486,15 +630,15 @@ class QuizApiTest extends TestCase
 
     public function test_cannot_finish_quiz_with_unanswered_questions(): void
     {
-        //ユーザーを作成
+        // ユーザーを作成
         $user = User::factory()->create([
             'xp' => 0,
         ]);
 
-        //レッスンを作成
+        // レッスンを作成
         $lesson = $this->createLesson();
 
-        //問題を１問作成
+        // 問題を１問作成
         Question::create([
             'lesson_id' => $lesson->id,
             'question_text' => 'What does Hello mean?',
@@ -502,7 +646,7 @@ class QuizApiTest extends TestCase
             'order_number' => 1,
         ]);
 
-        //クイズを開始
+        // クイズを開始
         $startResponse = $this->actingAs($user, 'sanctum')
             ->postJson("/api/lessons/{$lesson->id}/quiz/start");
 
@@ -510,18 +654,18 @@ class QuizApiTest extends TestCase
 
         $quizResultId = $startResponse->json('quiz_result_id');
 
-        //回答せずにクイズを終了せずに試みる
+        // 回答せずにクイズを終了せずに試みる
         $finishResponse = $this->postJson(
             "/api/quiz-results/{$quizResultId}/finish"
         );
 
-        //クイズは進行中のまま
+        // クイズは進行中のまま
         $this->assertDatabaseHas('quiz_results', [
             'id' => $quizResultId,
             'status' => 'in_progress',
         ]);
 
-        //xpも増えていない
+        // xpも増えていない
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'xp' => 0,
@@ -530,11 +674,11 @@ class QuizApiTest extends TestCase
 
     public function test_cannot_finish_partially_answered_quiz(): void
     {
-        //ユーザーとレッスンを作成
+        // ユーザーとレッスンを作成
         $user = User::factory()->create(['xp' => 0]);
         $lesson = $this->createLesson();
 
-        //１問目
+        // １問目
         $question1 = Question::create([
             'lesson_id' => $lesson->id,
             'question_text' => 'What does Hello mean?',
@@ -542,7 +686,7 @@ class QuizApiTest extends TestCase
             'order_number' => 1,
         ]);
 
-        //２問目
+        // ２問目
         $question2 = Question::create([
             'lesson_id' => $lesson->id,
             'question_text' => 'What does Thank you mean?',
@@ -550,14 +694,14 @@ class QuizApiTest extends TestCase
             'order_number' => 2,
         ]);
 
-        //１問目の正解を作成
-        $answer = new Answer();
+        // １問目の正解を作成
+        $answer = new Answer;
         $answer->question_id = $question1->id;
         $answer->answer_text = 'こんにちは';
         $answer->is_correct = true;
         $answer->save();
 
-        //クイズを開始
+        // クイズを開始
         $startResponse = $this->actingAs($user, 'sanctum')
             ->postJson("/api/lessons/{$lesson->id}/quiz/start");
 
@@ -565,7 +709,7 @@ class QuizApiTest extends TestCase
 
         $quizResultId = $startResponse->json('quiz_result_id');
 
-        //１問目だけ回答
+        // １問目だけ回答
         $answerResponse = $this->postJson(
             "/api/quiz-results/{$quizResultId}/answers",
             [
@@ -574,22 +718,22 @@ class QuizApiTest extends TestCase
             ]
         );
 
-        //２問目に回答せずに終了しようとする
+        // ２問目に回答せずに終了しようとする
         $finishResponse = $this->postJson(
             "/api/quiz-results/{$quizResultId}/finish"
         );
 
-        //終了できないことを確認
+        // 終了できないことを確認
         $finishResponse->assertStatus(422);
 
-        //クイズは進行中のまま
+        // クイズは進行中のまま
         $this->assertDatabaseHas('quiz_results', [
             'id' => $quizResultId,
             'total_questions' => 2,
             'status' => 'in_progress',
         ]);
 
-        //xpは付与されない
+        // xpは付与されない
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'xp' => 0,
@@ -598,11 +742,11 @@ class QuizApiTest extends TestCase
 
     public function test_cannot_submit_answer_from_another_question(): void
     {
-        //ユーザーとレッスン
+        // ユーザーとレッスン
         $user = User::factory()->create();
         $lesson = $this->createLesson();
 
-        //１問目
+        // １問目
         $question1 = Question::create([
             'lesson_id' => $lesson->id,
             'question_text' => 'What does Hello mean?',
@@ -610,7 +754,7 @@ class QuizApiTest extends TestCase
             'order_number' => 1,
         ]);
 
-        //２問目
+        // ２問目
         $question2 = Question::create([
             'lesson_id' => $lesson->id,
             'question_text' => 'What does Thank you mean?',
@@ -618,33 +762,33 @@ class QuizApiTest extends TestCase
             'order_number' => 2,
         ]);
 
-        //２問目の正解を作成
-        $answer = new Answer();
+        // ２問目の正解を作成
+        $answer = new Answer;
         $answer->question_id = $question2->id;
         $answer->answer_text = 'ありがとう';
         $answer->is_correct = true;
         $answer->save();
 
-        //クイズ開始
+        // クイズ開始
         $startResponse = $this->actingAs($user, 'sanctum')
             ->postJson("/api/lessons/{$lesson->id}/quiz/start");
 
         $startResponse->assertStatus(201);
         $quizResultId = $startResponse->json('quiz_result_id');
 
-        //問題１に対して、問題２の選択肢を送信
+        // 問題１に対して、問題２の選択肢を送信
         $response = $this->postJson(
             "/api/quiz-results/{$quizResultId}/answers",
             [
                 'question_id' => $question1->id,
                 'answer_id' => $answer->id,
-                ]
-            );
-        
-        //不正な組み合わせなので拒否
+            ]
+        );
+
+        // 不正な組み合わせなので拒否
         $response->assertStatus(404);
 
-        //回答が保存されていないことを確認
+        // 回答が保存されていないことを確認
         $this->assertDatabaseMissing('user_answers', [
             'quiz_result_id' => $quizResultId,
             'question_id' => $question1->id,

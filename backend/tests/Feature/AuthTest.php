@@ -2,20 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * A basic feature test example.
      */
     public function test_user_can_register(): void
     {
-        //ユーザー登録APIにリクエストを送信
+        // ユーザー登録APIにリクエストを送信
         $response = $this->postJson('/register', [
             'name' => 'Test User',
             'email' => 'registration@example.com',
@@ -23,17 +24,16 @@ class AuthTest extends TestCase
             'password_confirmation' => 'password123',
         ]);
 
-
-        //HTTPステータスが２０１か確認
+        // HTTPステータスが２０１か確認
         $response->assertStatus(201);
 
-        //レスポンスのメールアドレスを確認
+        // レスポンスのメールアドレスを確認
         $response->assertJsonPath(
             'user.email',
             'registration@example.com'
         );
 
-        //DBにユーザーが保存されているか確認
+        // DBにユーザーが保存されているか確認
         $this->assertDatabaseHas('users', [
             'email' => 'registration@example.com',
         ]);
@@ -52,12 +52,6 @@ class AuthTest extends TestCase
             'email' => 'login@example.com',
             'password' => 'password123',
         ]);
-
-        // デバッグ用：レスポンスを表示
-        $response->dump();
-
-        // ログイン後のリダイレクトを確認
-
 
         // 作成したユーザーとして認証されていることを確認
         $this->assertAuthenticatedAs($user);

@@ -9,7 +9,6 @@ use App\Models\Question;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-
 class QuestionController extends Controller
 {
     public function index(Lesson $lesson): AnonymousResourceCollection
@@ -41,7 +40,7 @@ class QuestionController extends Controller
 
         return response()->json([
             'question_id' => $question->id,
-            'answer_id' => $answer,
+            'answer_id' => $answer->id,
             'is_correct' => $is_correct,
             'message' => 'Answer received successfully',
         ]);

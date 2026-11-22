@@ -23,8 +23,8 @@ export default function CourseCard({
       className='block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
     >
 
-    <article className='overflow-hidden rounded-xl border border-gray-200 bg-white'>
-      <div className='relative h-36 bg-gradient-to-r from-blue-100 to-purple-100'>
+    <article className='h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md'>
+      <div className='relative aspect-video overflow-hidden bg-gradient bg-gradient-to-br from-blue-100 to-violet-100'>
         {image ? (
           <Image
           src={image}
@@ -40,18 +40,23 @@ export default function CourseCard({
         )}
       </div>
 
-      <div className='p-4'>
-        <h2 className='text-lg font-bold text-gray-900'>
+      <div className='p-6'>
+        <span className="inline-flex rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+          {level}
+        </span>
+
+        <h2 className="mt-3 text-xl font-bold tracking-tight text-slate-900">
           {title}
         </h2>
 
-        <p className='mt-1 text-gray-600'>
-          {level}
+        <p className='mt-2 text-sm text-slate-500'>
+          {lessonCount} {lessonCount === 1 ? 'lesson' : 'lessons'}
         </p>
 
-        <p className='mt-1 text-gray-600'>
-          {lessonCount} Lessons
-        </p>
+        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm font-semibold text-violet-700 group-hover:text-violet-900">
+          <span>View lessons</span>
+          <span aria-hidden="true">→</span>
+        </div>
       </div>
     </article>
     </Link>
