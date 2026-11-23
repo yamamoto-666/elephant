@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import LessonItem from '@/components/LessonItem';
+import { apiUrl } from '@/lib/api';
 
 type CourseTabsProps = {
   courseId: number;
@@ -48,7 +49,7 @@ export default function CourseTabs({
     async function loadUnits() {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/courses/${courseId}/units`,
+          apiUrl(`/api/courses/${courseId}/units`),
           {
             headers: {
               Accept: 'application/json',

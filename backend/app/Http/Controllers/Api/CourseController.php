@@ -20,6 +20,8 @@ class CourseController extends Controller
 
     public function show(Course $course): CourseResource
     {
+        $course->loadCount('lessons');
+
         return new CourseResource($course);
     }
 }
