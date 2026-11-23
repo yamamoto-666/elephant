@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import AuthStatus from '@/components/AuthStatus';
 
 const upcomingMenus = [
   "Progress",
@@ -88,6 +89,9 @@ export default function Sidebar() {
         <span className="flex min-h-12 w-full items-center justify-center rounded-xl px-3 text-center text-base font-medium text-white/70">
           Settings
         </span>
+        <div className="mt-4 border-t border-white/20 pt-4">
+          <AuthStatus />
+        </div>
       </nav>
     </aside>
   );

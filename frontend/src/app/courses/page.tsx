@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { Course, CourseLevel } from '@/types/course';
 import CourseCard from '@/components/CourseCard';
 import SidebarLayout from '@/components/SidebarLayout';
+import { apiUrl } from '@/lib/api';
 
 type ApiCourse = {
   id: number;
@@ -58,7 +59,7 @@ export default function CoursePage() {
     async function loadCourses() {
       try {
         const response = await fetch(
-          'http://localhost:8000/api/courses',
+          apiUrl('/api/courses'),
           {
             headers: {
               Accept: 'application/json',

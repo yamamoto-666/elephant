@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import SidebarLayout from '@/components/SidebarLayout';
+import { apiUrl, getCsrfToken } from '@/lib/api';
 
 type LessonQuestionsResponse = {
   data: {
@@ -39,7 +40,7 @@ function LessonQuizContent({ id }: { id: string }) {
 
     async function loadQuestions() {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/lessons/${id}/questions`, {
+        const response = await fetch(apiUrl(`/api/lessons/${id}/questions`), {
           signal: controller.signal,
         });
 
@@ -119,31 +120,10 @@ function LessonQuizContent({ id }: { id: string }) {
     setAnswerError('');
 
     try {
-      // CSRF用のCookieを取得する
-      const csrfResponse = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
-        headers: {
-          Accept: 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!csrfResponse.ok) {
-        throw new Error(`CSRFトークンを取得できませんでした（HTTP ${csrfResponse.status}）`);
-      }
-
-      // CookieからCSRFトークンを取り出す
-      const tokenCookie = document.cookie
-        .split('; ')
-        .find((cookie) => cookie.startsWith('XSRF-TOKEN='));
-
-      if (!tokenCookie) {
-        throw new Error('CSRFトークンのCookieが見つかりません');
-      }
-
-      const csrfToken = decodeURIComponent(tokenCookie.slice('XSRF-TOKEN='.length));
+      const csrfToken = await getCsrfToken();
 
       // 回答を送信する
-      const response = await fetch(`http://localhost:8000/api/questions/${apiQuestion.id}/answer`, {
+      const response = await fetch(apiUrl(`/api/questions/${apiQuestion.id}/answer`), {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -304,6 +284,7 @@ function LessonQuizContent({ id }: { id: string }) {
                 setCurrentQuestionIndex(currentQuestionIndex + 1);
                 setSelectedAnswerId(null);
                 setIsSubmitted(false);
+                setAnswerError('');
               }}
               className='mt-4 w-full rounded-xl border border-violet-200 bg-white px-6 py-3 font-semibold text-violet-700 hover:bg-violet-50'
             >
@@ -324,6 +305,7 @@ function LessonQuizContent({ id }: { id: string }) {
                   setSelectedAnswerId(null);
                   setIsSubmitted(false);
                   setCorrectCount(0);
+                  setAnswerError('');
                 }}
                 className='mt-4 rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700'
               >
