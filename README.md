@@ -16,7 +16,7 @@ Elephantは、日本語話者向けの英語学習Webアプリケーションで
 
 ### トップページ
 
-英語学習サービスの紹介ページです。象のロゴと青・紫を基調としたビジュアルで、レッスンや毎日の学習、進捗管理、AI英会話のコンセプトを紹介しています。AI英会話や認証画面は今後実装予定です。
+英語学習サービスの紹介ページです。象のロゴと青・紫を基調としたビジュアルで、レッスンや毎日の学習、進捗管理、AI英会話のコンセプトを紹介しています。登録・ログイン画面は実装済みです。AI英会話は今後実装予定です。
 
 ![Elephantのトップページ](docs/screenshots/home.png)
 
@@ -48,7 +48,7 @@ Elephantは、日本語話者向けの英語学習Webアプリケーションで
 | コース一覧 | APIから取得し、コース名検索・難易度フィルター・再読み込みに対応 |
 | コース詳細 | タイトル・説明・画像は仮データ。進捗率は仮の固定値（30%）で、実際の学習進捗とは連動していません。ユニット・レッスン一覧はAPIから取得 |
 | クイズ画面 | APIから問題・選択肢を取得し、回答の正誤判定、次の問題への移動、スコア表示、再挑戦に対応 |
-| ユーザー認証 | 登録・ログイン・ログアウトのバックエンド処理を実装。認証画面は未実装 |
+| ユーザー認証 | 登録・ログイン・ログアウトのバックエンド処理と、登録・ログイン画面からのセッション認証を実装 |
 | 学習履歴・XP | 認証付きのクイズ開始・回答保存・終了APIを実装。現在のクイズ画面からは未接続 |
 | 学習進捗 | 合計XP・レベル・完了レッスン数・平均スコアを返すAPIを実装。画面は未実装 |
 | 復習 | 完了済みクイズの誤答を問題単位で重複除外して返すAPIを実装。画面は未実装 |
@@ -95,7 +95,7 @@ php artisan test
 | スタイリング | Tailwind CSS 4 |
 | バックエンド | PHP 8.3以上、Laravel 13（`^13.17`） |
 | 認証 | Laravel Sanctum 4、セッション・Cookie認証 |
-| データベース | SQLite（`.env.example`の既定値） |
+| データベース | Docker環境はPostgreSQL 17。Dockerを使わないローカル環境はSQLite（`.env.example`の既定値） |
 | テスト・静的チェック | PHPUnit 12、ESLint 9 |
 
 ## ディレクトリ構成
@@ -120,6 +120,61 @@ Elephant/
 │       └── types/            # 型定義
 └── README.md
 ```
+
+## Dockerでの起動(開発用)
+
+### 必要な環境
+
+- Docker Desktop(`docker compose`が使えること)
+
+### 初回セットアップ
+
+以下はリポジトリのルートディレクトリから実行します。環境変数ファイルの作成は初回のみです。既存の`backend/.env`や`frontend/.env.local`がある場合は上書きせず、必要な設定を編集してください。
+
+```bash
+# 1. 環境変数ファイルを用意(初回のみ)
+cp backend/.env.example backend/.env
+echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > frontend/.env.local
+
+# 2. backend/.env のDB設定をDocker用に書き換える(下の表を参照)
+
+# 3. 依存関係をインストール
+docker compose run --rm backend composer install
+
+# 4. 起動
+docker compose up -d --build
+
+# 5. 初期設定
+docker compose exec backend php artisan key:generate
+docker compose exec backend php artisan migrate
+docker compose exec backend php artisan db:seed --class=LearningContentSeeder
+```
+
+ブラウザで **http://localhost:3000** を開きます。
+
+APIは **http://localhost:8000/api/courses** で確認できます。
+
+### backend/.env のDB設定
+
+`.env.example`の既定値はSQLiteです。`DB_CONNECTION`を変更し、ほかのDB設定は行頭の`#`を外して、以下の値を設定してください。
+
+| 項目 | 値 |
+| --- | --- |
+| DB_CONNECTION | pgsql |
+| DB_HOST | db |
+| DB_PORT | 5432 |
+| DB_DATABASE | elephant |
+| DB_USERNAME | elephant |
+| DB_PASSWORD | `compose.yaml` の `POSTGRES_PASSWORD` と同じ値 |
+
+### よく使うコマンド
+
+| コマンド | 内容 |
+| --- | --- |
+| `docker compose up -d` | 起動 |
+| `docker compose down` | 停止(DBのデータは残る) |
+| `docker compose logs -f frontend` | ログを見る |
+| `docker compose down -v` | 停止+DBのデータも削除 |
 
 ## ローカルでの起動
 
@@ -155,6 +210,8 @@ APIの確認先：`http://localhost:8000/api/courses`
 ```bash
 cd frontend
 npm ci
+# 初回のみ。既存ファイルがある場合は上書きせず設定を編集してください
+echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > .env.local
 npm run dev
 ```
 
@@ -163,17 +220,19 @@ npm run dev
 | パス | 画面 |
 | --- | --- |
 | `/` | トップページ |
+| `/register` | ユーザー登録 |
+| `/login` | ログイン |
 | `/courses` | コース一覧・検索・難易度フィルター |
 | `/courses/{id}` | コース詳細・ユニット・レッスン一覧 |
 | `/lessons/{id}/quiz` | レッスンのクイズ |
 
 ### 接続設定と現時点の制約
 
-- APIのURLはフロントエンドのコード内に直接記述されており、`localhost:8000`と`127.0.0.1:8000`が混在しています。API接続先を切り替える環境変数はまだありません。
+- API接続先は`frontend/.env.local`の`NEXT_PUBLIC_API_BASE_URL`で設定し、`frontend/src/lib/api.ts`でURLを組み立てます。開発環境では`http://localhost:8000`を指定してください。
 - 現在の`backend/config/cors.php`は、`http://localhost:3000`からの通信とCookie送信を許可しています。フロントエンドを別のホスト・ポートで起動する場合は設定の調整が必要です。
 - クイズの回答送信では、`/sanctum/csrf-cookie`からCookieを取得してCSRFトークンを送信します。画面は`localhost:3000`で開いてください。
 - コース詳細は`frontend/src/data/courses.ts`のIDを参照します。API側にだけ存在するコースは、一覧に表示されても詳細画面で見つからない場合があります。
-- 認証画面の接続時には、ホスト名の統一に加えてCORSの対象パスも見直す必要があります。現設定の対象は`api/*`と`sanctum/csrf-cookie`で、`/login`・`/register`・`/logout`は含まれていません。
+- CORSの対象には`api/*`・`sanctum/csrf-cookie`に加え、`login`・`register`・`logout`も含まれています。登録・ログイン画面はCSRFトークンとCookieを送信して認証APIに接続します。
 
 ## デモ用学習データ
 
@@ -238,9 +297,7 @@ npm run build
 ## 今後の開発項目
 
 - コース詳細の仮データ・固定進捗率をAPIのデータに置き換える
-- 登録・ログイン画面を実装し、セッション認証を接続する
 - クイズ画面を履歴保存・終了APIへ接続し、XPと進捗に反映する
-- API接続先の設定を共通化し、ホスト名・CORS設定を整理する
 - 中級・上級コースの学習コンテンツを追加する
 - 学習進捗・復習画面を実装する
 - 単問採点・復習APIやフロントエンドのテストを拡充する
