@@ -133,7 +133,7 @@ Elephant/
 
 直下の`.env.example`にある`change-me`は開発用の仮のパスワードです。手順2で任意の値に変更し、`backend/.env`の`DB_PASSWORD`にも同じ値を設定してください。
 
-PostgreSQLの`POSTGRES_PASSWORD`は、DBボリュームを最初に作成するときだけ反映されます。すでにDockerでDBを作成済みの場合、環境変数の変更を反映するには`docker compose down -v`でDBを削除し、作り直す必要があります(データは消えます)。
+PostgreSQLの`POSTGRES_PASSWORD`は、DBボリュームを最初に初期化するときに使用されます。既存DBのパスワードは、`.env`の変更やコンテナの再作成だけでは変わりません。データを残して変更する場合は、PostgreSQL側のユーザーパスワードを変更し、直下の`.env`と`backend/.env`も合わせて更新してください。`docker compose down -v`はDBデータを削除するため、データを破棄して初期化し直す場合だけ使用してください。
 
 ```bash
 # 1. 環境変数ファイルを用意(初回のみ)
@@ -169,9 +169,11 @@ APIは **http://localhost:8000/api/courses** で確認できます。
 | DB_CONNECTION | pgsql |
 | DB_HOST | db |
 | DB_PORT | 5432 |
-| DB_DATABASE | elephant |
-| DB_USERNAME | elephant |
+| DB_DATABASE | 直下の`.env`の`POSTGRES_DB`と同じ値 |
+| DB_USERNAME | 直下の`.env`の`POSTGRES_USER`と同じ値 |
 | DB_PASSWORD | 直下の`.env`の`POSTGRES_PASSWORD`と同じ値 |
+
+DBのヘルスチェックも`POSTGRES_USER`と`POSTGRES_DB`を参照します。Composeファイル内の`$$`は、Composeによる変数展開を避け、コンテナ内のシェルで環境変数を展開するための記法です。バックエンドはDBが接続を受け付ける状態になるまで待ってから起動します。
 
 ### よく使うコマンド
 
