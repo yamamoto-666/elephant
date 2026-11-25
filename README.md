@@ -129,14 +129,20 @@ Elephant/
 
 ### 初回セットアップ
 
-以下はリポジトリのルートディレクトリから実行します。環境変数ファイルの作成は初回のみです。既存の`backend/.env`や`frontend/.env.local`がある場合は上書きせず、必要な設定を編集してください。
+以下はリポジトリのルートディレクトリから実行します。環境変数ファイルの作成は初回のみです。既存の`.env`や`backend/.env`、`frontend/.env.local`がある場合は上書きせず、必要な設定を編集してください。
+
+直下の`.env.example`にある`change-me`は開発用の仮のパスワードです。手順2で任意の値に変更し、`backend/.env`の`DB_PASSWORD`にも同じ値を設定してください。
+
+PostgreSQLの`POSTGRES_PASSWORD`は、DBボリュームを最初に作成するときだけ反映されます。すでにDockerでDBを作成済みの場合、環境変数の変更を反映するには`docker compose down -v`でDBを削除し、作り直す必要があります(データは消えます)。
 
 ```bash
 # 1. 環境変数ファイルを用意(初回のみ)
+cp .env.example .env
 cp backend/.env.example backend/.env
 echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > frontend/.env.local
 
-# 2. backend/.env のDB設定をDocker用に書き換える(下の表を参照)
+# 2. 直下の .env の POSTGRES_PASSWORD を任意の値に変更し、
+#    backend/.env のDB設定をDocker用に書き換える(下の表を参照)
 
 # 3. 依存関係をインストール
 docker compose run --rm backend composer install
@@ -165,7 +171,7 @@ APIは **http://localhost:8000/api/courses** で確認できます。
 | DB_PORT | 5432 |
 | DB_DATABASE | elephant |
 | DB_USERNAME | elephant |
-| DB_PASSWORD | `compose.yaml` の `POSTGRES_PASSWORD` と同じ値 |
+| DB_PASSWORD | 直下の`.env`の`POSTGRES_PASSWORD`と同じ値 |
 
 ### よく使うコマンド
 
